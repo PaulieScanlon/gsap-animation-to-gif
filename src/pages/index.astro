@@ -1,0 +1,190 @@
+---
+import '../global.css';
+---
+
+<html lang='en'>
+  <head>
+    <meta charset='utf-8' />
+    <title>Smashing Newsletter</title>
+    <script>
+      const width = 800;
+      const height = 400;
+      const duration = 0.3;
+      const startX = 415;
+      const startY = 145;
+
+      const canvas = document.getElementById('canvas');
+      const button = document.getElementById('button');
+      const startAnimation = document.getElementById('start-animation');
+      const endAnimation = document.getElementById('end-animation');
+
+      const ctx = canvas.getContext('2d');
+
+      const headingFont = new FontFace('MijaBold', 'url(/fonts/Mija_Bold-webfont-subset-v2.woff2)');
+      const regularFont = new FontFace('ElenaRegular', 'url(/fonts/ElenaWebRegular-subset-v2.woff2)');
+      const italicFont = new FontFace('ElenaItalic', 'url(/fonts/ElenaWebRegularItalic-subset-v2.woff2)');
+
+      let gifFrames = [];
+
+      const mailmanBody = document.getElementById('mailman-body');
+      const mailmanHat = document.getElementById('mailman-hat');
+      const blueEnvelope = document.getElementById('blue-envelope');
+      const greenEnvelope = document.getElementById('green-envelope');
+      const pinkEnvelope = document.getElementById('pink-envelope');
+
+      const blueEnvelopeValues = { start: 290, end: 310 };
+      const greenEnvelopeValues = { start: 180, end: 160 };
+      const pinkEnvelopeValues = { start: 60, end: 80 };
+
+      canvas.width = width;
+      canvas.height = height;
+
+      await headingFont.load();
+      await regularFont.load();
+      await italicFont.load();
+
+      document.fonts.add(headingFont);
+      document.fonts.add(regularFont);
+      document.fonts.add(italicFont);
+
+      const tl = gsap.timeline({
+        yoyo: true,
+        repeat: 1,
+
+        onUpdate: () => {
+          ctx.clearRect(0, 0, width, height);
+
+          ctx.fillStyle = '#fdffe5';
+          ctx.fillRect(0, 0, width, height);
+
+          ctx.fillStyle = '#000000';
+          ctx.font = '34px MijaBold';
+          ctx.fillText('Smashing Newsletter', startX, startY);
+
+          ctx.font = '16px ElenaRegular';
+          ctx.fillText('Weekly tips on front-end & UX, delivered straight to', startX, startY + 30);
+          ctx.fillText('your inbox. Just practical stuff that you can use.', startX, startY + 50);
+
+          ctx.fillStyle = '#ff6411';
+          ctx.beginPath();
+          ctx.roundRect(startX, startY + 90, 190, 50, [10]);
+          ctx.fill();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '16px MijaBold';
+          ctx.fillText('Jump to Newsletter ↬', startX + 15, startY + 120);
+
+          ctx.fillStyle = '#666665';
+          ctx.font = '12px ElenaItalic';
+          ctx.fillText('You can unsubscribe with 1 click any time.', startX, startY + 160);
+
+          ctx.drawImage(mailmanBody, 15, 25, 370, 350);
+          ctx.drawImage(mailmanHat, 140, 30, 84, 48);
+          ctx.drawImage(blueEnvelope, 260, blueEnvelopeValues.start, 68, 54);
+          ctx.drawImage(greenEnvelope, 310, greenEnvelopeValues.start, 76, 64);
+          ctx.drawImage(pinkEnvelope, 10, pinkEnvelopeValues.start, 58, 49);
+
+          gifFrames.push(canvas.toDataURL('image/png'));
+        },
+        onComplete: () => {
+          button.style.display = 'block';
+          button.addEventListener('click', generateGif);
+        },
+      });
+
+      tl.to(blueEnvelopeValues, duration, {
+        start: blueEnvelopeValues.end,
+        ease: 'power2.inOut',
+      });
+
+      tl.to(
+        greenEnvelopeValues,
+        duration,
+        {
+          start: greenEnvelopeValues.end,
+          ease: 'power1.inOut',
+        },
+        '<'
+      );
+
+      tl.to(
+        pinkEnvelopeValues,
+        duration,
+        {
+          start: pinkEnvelopeValues.end,
+          ease: 'power1.inOut',
+        },
+        '<'
+      );
+
+      const generateGif = async () => {
+        button.innerHTML = 'Generating Gif...';
+
+        const gif = await modernGif.encode({
+          width: width,
+          height: height,
+          frames: gifFrames.map((frame) => {
+            return { imageData: frame, delay: 0 };
+          }),
+        });
+
+        const frames = await gif;
+        const blob = new Blob([frames], { type: 'image/gif' });
+        const src = URL.createObjectURL(blob);
+
+        const image = document.getElementById('image');
+        const link = document.getElementById('link');
+
+        image.src = src;
+        link.href = src;
+
+        startAnimation.style.display = 'none';
+        endAnimation.style.display = 'block';
+      };
+    </script>
+  </head>
+  <body class='prose max-w-none'>
+    <main class='p-4 sm:p-8'>
+      <section>
+        <div class='max-w-4xl mx-auto'>
+          <div id='start-animation'>
+            <h2 class='mb-0'>GSAP</h2>
+            <p>GSAP Animation rendered to HTML canvas.</p>
+            <canvas id='canvas' class='rounded-2xl overflow-hidden w-full'></canvas>
+
+            <div class='flex justify-center py-8'>
+              <button
+                id='button'
+                class='hidden px-6 py-3 rounded-full border-4 border-black text-xl font-bold text-black duration-200 transition-colors hover:text-zinc-500 hover:border-zinc-500'
+                >Generate Gif</button
+              >
+            </div>
+          </div>
+
+          <div id='end-animation' class='hidden'>
+            <h2 class='mb-0'>Gif</h2>
+            <p>Canvas frames rendered to Gif.</p>
+            <img id='image' class='m-0 rounded-2xl overflow-hidden w-full' />
+            <div class='flex justify-center py-8'>
+              <a
+                id='link'
+                download='smashing-newsletter.gif'
+                class='px-6 py-3 rounded-full border-4 border-black text-xl font-bold text-black duration-200 transition-colors hover:text-zinc-500 hover:border-zinc-500'
+                >Download</a
+              >
+            </div>
+          </div>
+        </div>
+        <div class='hidden'>
+          <image id='mailman-body' src='/images/mailman-body.png' />
+          <image id='mailman-hat' src='/images/mailman-hat.png' />
+          <image id='blue-envelope' src='/images/blue-envelope.png' />
+          <image id='green-envelope' src='/images/green-envelope.png' />
+          <image id='pink-envelope' src='/images/pink-envelope.png' />
+        </div>
+      </section>
+    </main>
+    <script is:inline src='https://unpkg.com/modern-gif'></script>
+    <script is:inline src='https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js'></script>
+  </body>
+</html>
