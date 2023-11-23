@@ -1,186 +1,166 @@
----
-import '../global.css';
----
-
 <html lang='en'>
   <head>
     <meta charset='utf-8' />
-    <title>Smashing Newsletter</title>
+    <title>Animation</title>
     <script>
-      const width = 800;
+      const width = 400;
       const height = 400;
-      const duration = 0.3;
-      const startX = 415;
-      const startY = 145;
+      const duration = 4;
+      const skipFrames = 6;
 
+      const message = document.getElementById('message');
       const canvas = document.getElementById('canvas');
-      const button = document.getElementById('button');
-      const startAnimation = document.getElementById('start-animation');
-      const endAnimation = document.getElementById('end-animation');
-
       const ctx = canvas.getContext('2d');
 
-      const headingFont = new FontFace('MijaBold', 'url(/fonts/Mija_Bold-webfont-subset-v2.woff2)');
-      const regularFont = new FontFace('ElenaRegular', 'url(/fonts/ElenaWebRegular-subset-v2.woff2)');
-      const italicFont = new FontFace('ElenaItalic', 'url(/fonts/ElenaWebRegularItalic-subset-v2.woff2)');
-
-      let gifFrames = [];
-
-      const mailmanBody = document.getElementById('mailman-body');
-      const mailmanHat = document.getElementById('mailman-hat');
-      const blueEnvelope = document.getElementById('blue-envelope');
-      const greenEnvelope = document.getElementById('green-envelope');
-      const pinkEnvelope = document.getElementById('pink-envelope');
-
-      const blueEnvelopeValues = { start: 290, end: 310 };
-      const greenEnvelopeValues = { start: 180, end: 160 };
-      const pinkEnvelopeValues = { start: 60, end: 80 };
+      const background = document.getElementById('background');
+      let animationFrames = [];
+      let canvasFrames = [];
 
       canvas.width = width;
       canvas.height = height;
 
-      await headingFont.load();
-      await regularFont.load();
-      await italicFont.load();
+      gsap
+        .timeline({
+          onUpdate: () => {
+            const xml = new XMLSerializer().serializeToString(svg);
+            const src = `data:image/svg+xml;base64,${btoa(xml)}`;
+            animationFrames.push(src);
+          },
+          onComplete: () => {
+            let inc = 0;
+            const renderSvgDataToCanvas = () => {
+              const virtualImage = new Image();
+              virtualImage.src = animationFrames[inc];
+              virtualImage.onload = () => {
+                ctx.clearRect(0, 0, width, height);
+                ctx.drawImage(background, 0, 0, width, height);
+                ctx.drawImage(virtualImage, 0, 0, width, height);
+                canvasFrames.push(canvas.toDataURL('image/jpeg'));
+                inc++;
+                if (inc < animationFrames.length - 1) {
+                  message.innerHTML = `Writing frame ${inc} to canvas`;
+                  renderSvgDataToCanvas();
+                } else {
+                  generateGif();
+                }
+              };
+            };
+            const generateGif = async () => {
+              const gif = await modernGif.encode({
+                width: width,
+                height: height,
+                frames: canvasFrames
+                  .filter((_, index) => index % skipFrames === 0)
+                  .map((frame) => {
+                    return { imageData: frame, delay: 0 };
+                  }),
+              });
+              const frames = await gif;
+              const blob = new Blob([frames], { type: 'image/gif' });
+              const src = URL.createObjectURL(blob);
 
-      document.fonts.add(headingFont);
-      document.fonts.add(regularFont);
-      document.fonts.add(italicFont);
+              const image = document.getElementById('image');
+              const link = document.getElementById('link');
 
-      const tl = gsap.timeline({
-        yoyo: true,
-        repeat: 1,
-
-        onUpdate: () => {
-          ctx.clearRect(0, 0, width, height);
-
-          ctx.fillStyle = '#fdffe5';
-          ctx.fillRect(0, 0, width, height);
-
-          ctx.fillStyle = '#000000';
-          ctx.font = '34px MijaBold';
-          ctx.fillText('Smashing Newsletter', startX, startY);
-
-          ctx.font = '16px ElenaRegular';
-          ctx.fillText('Weekly tips on front-end & UX, delivered straight to', startX, startY + 30);
-          ctx.fillText('your inbox. Just practical stuff that you can use.', startX, startY + 50);
-
-          ctx.fillStyle = '#ff6411';
-          ctx.beginPath();
-          ctx.roundRect(startX, startY + 90, 190, 50, [10]);
-          ctx.fill();
-
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '16px MijaBold';
-          ctx.fillText('Jump to Newsletter ↬', startX + 15, startY + 120);
-
-          ctx.fillStyle = '#666665';
-          ctx.font = '12px ElenaItalic';
-          ctx.fillText('You can unsubscribe with 1 click any time.', startX, startY + 160);
-
-          ctx.drawImage(mailmanBody, 15, 25, 370, 350);
-          ctx.drawImage(mailmanHat, 140, 30, 84, 48);
-          ctx.drawImage(blueEnvelope, 260, blueEnvelopeValues.start, 68, 54);
-          ctx.drawImage(greenEnvelope, 310, greenEnvelopeValues.start, 76, 64);
-          ctx.drawImage(pinkEnvelope, 10, pinkEnvelopeValues.start, 58, 49);
-
-          gifFrames.push(canvas.toDataURL('image/png'));
-        },
-        onComplete: () => {
-          button.style.display = 'block';
-          button.addEventListener('click', generateGif);
-        },
-      });
-
-      tl.to(blueEnvelopeValues, duration, {
-        start: blueEnvelopeValues.end,
-        ease: 'power2.inOut',
-      });
-
-      tl.to(
-        greenEnvelopeValues,
-        duration,
-        {
-          start: greenEnvelopeValues.end,
-          ease: 'power1.inOut',
-        },
-        '<'
-      );
-
-      tl.to(
-        pinkEnvelopeValues,
-        duration,
-        {
-          start: pinkEnvelopeValues.end,
-          ease: 'power1.inOut',
-        },
-        '<'
-      );
-
-      const generateGif = async () => {
-        button.innerHTML = 'Generating Gif...';
-
-        const gif = await modernGif.encode({
-          width: width,
-          height: height,
-          frames: gifFrames.map((frame) => {
-            return { imageData: frame, delay: 0 };
-          }),
-        });
-
-        const frames = await gif;
-        const blob = new Blob([frames], { type: 'image/gif' });
-        const src = URL.createObjectURL(blob);
-
-        const image = document.getElementById('image');
-        const link = document.getElementById('link');
-
-        image.src = src;
-        link.href = src;
-
-        startAnimation.style.display = 'none';
-        endAnimation.style.display = 'block';
-      };
+              message.style.display = 'none';
+              link.style.display = 'block';
+              image.src = src;
+              link.href = src;
+            };
+            renderSvgDataToCanvas();
+          },
+        })
+        .fromTo('#cartman', { x: -200 }, { duration: duration, x: 500, ease: 'steps(10)' })
+        .fromTo('#cartman', { rotation: -5 }, { duration: 0.4, repeat: 6, rotation: 5, ease: 'steps(1)' }, '<');
     </script>
   </head>
   <body class='prose max-w-none'>
-    <main class='p-4 sm:p-8'>
-      <section>
-        <div class='max-w-4xl mx-auto'>
-          <div id='start-animation'>
-            <h2 class='mb-0'>GSAP</h2>
-            <p>GSAP Animation rendered to HTML canvas.</p>
-            <canvas id='canvas' class='rounded-2xl overflow-hidden w-full'></canvas>
-
-            <div class='flex justify-center py-8'>
-              <button
-                id='button'
-                class='hidden px-6 py-3 rounded-full border-4 border-black text-xl font-bold text-black duration-200 transition-colors hover:text-zinc-500 hover:border-zinc-500'
-                >Generate Gif</button
-              >
-            </div>
-          </div>
-
-          <div id='end-animation' class='hidden'>
-            <h2 class='mb-0'>Gif</h2>
-            <p>Canvas frames rendered to Gif.</p>
-            <img id='image' class='m-0 rounded-2xl overflow-hidden w-full' />
-            <div class='flex justify-center py-8'>
-              <a
-                id='link'
-                download='smashing-newsletter.gif'
-                class='px-6 py-3 rounded-full border-4 border-black text-xl font-bold text-black duration-200 transition-colors hover:text-zinc-500 hover:border-zinc-500'
-                >Download</a
-              >
-            </div>
+    <main class='p-4 sm:p-8 mx-auto max-w-4xl'>
+      <section class='grid grid-cols-2 gap-8'>
+        <div>
+          <h2>1. GSAP Animation</h2>
+          <div class='relative'>
+            <img id='background' src='/images/bus-stop.jpg' class='m-0' />
+            <svg
+              id='svg'
+              xmlns='http://www.w3.org/2000/svg'
+              viewBox='0 0 400 400'
+              class='absolute top-0 left-0 w-[400px] h-[400px] border border-black'
+            >
+              <g id='cartman' transform-origin='25 25'>
+                <polygon
+                  points='95.67 374.47 91.99 384.48 22.99 384.48 18.74 373.44 95.67 374.47 95.67 374.47'
+                  style='fill: #5a2a19; stroke-width: 0px;'></polygon>
+                <path
+                  d='m23.64,340.17s-7.05,4.6-12.88,15.64l4.6,8.89s-1.23,6.44,4.29,11.04c5.52,4.6,23.31,7.05,38.03,5.52,0,0,6.74.31,13.49-2.76,6.75-3.07,19.63-2.15,19.63-2.15,0,0,10.43.31,8.28-11.65l1.84-11.96s-3.07-4.29-5.21-7.97c-2.15-3.68-12.27-3.99-12.27-3.99,0,0-22.69,11.96-59.8-.61h0Z'
+                  style='fill: #bf343b; stroke-width: 0px;'></path>
+                <path
+                  d='m20.88,328.82c0-16.09,15.86-29.13,35.42-29.13s35.42,13.04,35.42,29.13-15.86,29.13-35.42,29.13-35.42-13.04-35.42-29.13h0Z'
+                  style='fill: #edd6b0; stroke-width: 0px;'></path>
+                <path
+                  d='m59.52,358.57s1.23,4.29,1.23,6.44,1.23,2.15.31,6.13c-.92,3.99-.31,6.14-1.23,8.89,0,0,.65-.96,1.23-4.98.57-4.02.23-2.07.57-5.52.34-3.45-.46-2.99-.57-6.09-.12-3.11-1.54-4.87-1.54-4.87h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+                <path
+                  d='m59.22,361.31c0,.79-.36,1.44-.81,1.44s-.81-.64-.81-1.44.36-1.44.81-1.44.81.65.81,1.44h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+                <path
+                  d='m60.25,369.47c0,.79-.36,1.44-.81,1.44s-.8-.64-.8-1.44.36-1.44.8-1.44.81.64.81,1.44h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+                <path
+                  d='m59.22,377.41c0,.79-.36,1.44-.81,1.44s-.81-.64-.81-1.44.36-1.44.81-1.44.81.64.81,1.44h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+                <path
+                  d='m30.35,343.19s8.74,9.78,21.74,11.16c12.99,1.38,19.89-1.84,32.43-13.92h.81s-12.88,14.26-24.61,14.61c-11.73.34-19.2-.81-31.05-11.5l.69-.35h0Z'
+                  style='fill: #e7cfbb; stroke-width: 0px;'></path>
+                <path
+                  d='m54.04,350.9s4.71,2.53,8.97-.11c0,0,.8-.34,0,.58-.81.92-4.83,2.18-9.32,0,0,0-1.04-.69.35-.46h0Z'
+                  style='fill: #dfc8b5; stroke-width: 0px;'></path>
+                <path
+                  d='m58.87,345.72s-1.95.92-2.53,2.07c-.58,1.15.81,2.18,2.19,2.18s2.3,0,2.76-1.5c.46-1.49,0-2.76-2.42-2.76h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+                <path
+                  d='m21.04,326.75s16.56-9.09,36.92-10c20.36-.92,33.23,7.13,33.23,7.13,0,0-1.72-13.92-18.97-21.04-17.25-7.13-31.97-.35-37.49,3.1-5.52,3.45-12.19,9.43-13.69,20.82h0Z'
+                  style='fill: #4ea0b5; stroke-width: 0px;'></path>
+                <path
+                  d='m20.92,327.9s18.29-9.43,36.46-9.78c18.17-.34,34.04,7.13,34.04,7.13,0,0,0-1.72-.69-3.33,0,0-10.81-7.25-33.35-6.56-22.54.69-36.11,9.55-36.11,9.55,0,0-.69.92-.34,2.99h0Z'
+                  style='fill: #e7bf47; stroke-width: 0px;'></path>
+                <path
+                  d='m51.4,301.1s-.92,1.84-3.34,1.84-2.99-2.76-.35-3.8c2.65-1.04,3.91-2.07,3.91-2.07,0,0,4.83-1.38,6.9-.34,2.07,1.03,3.22-.11,3.91,1.5,0,0,4.94,0,3.8,2.87,0,0,0,1.38-2.19,1.61-2.18.23-2.3-.81-2.3-.81,0,0-.69,1.61-2.99,1.73-2.3.11-2.07-2.07-3.8-1.38-1.72.69-2.53,2.18-3.56-1.15h0Z'
+                  style='fill: #e7bf47; stroke-width: 0px;'></path>
+                <path
+                  d='m41.63,325.12c2.16-5.16,7.5-7.83,11.91-5.98,4.41,1.85,6.23,7.53,4.06,12.69-2.17,5.15-7.5,7.83-11.91,5.98-4.41-1.85-6.23-7.53-4.06-12.69h0Z'
+                  style='fill: #fff; stroke-width: 0px;'></path>
+                <path
+                  d='m75.31,325.12c-2.17-5.16-7.5-7.83-11.91-5.98-4.41,1.85-6.23,7.53-4.06,12.69,2.17,5.15,7.5,7.83,11.91,5.98,4.41-1.85,6.23-7.53,4.06-12.69h0Z'
+                  style='fill: #fff; stroke-width: 0px;'></path>
+                <path
+                  d='m53.24,329.05c0,.64-.44,1.15-.98,1.15s-.98-.51-.98-1.15.44-1.15.98-1.15.98.51.98,1.15h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+                <path
+                  d='m64.51,329.05c0,.64-.44,1.15-.98,1.15s-.98-.51-.98-1.15.44-1.15.98-1.15.98.51.98,1.15h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+                <path
+                  d='m12.18,352.62s7.59,1.27,11.5,4.6c3.91,3.34,6.79,7.25.58,8.4-6.21,1.15-7.82,0-10.93.23-3.11.23-7.47-5.52-2.99-11.5l1.84-1.73h0Z'
+                  style='fill: #e7bf47; stroke-width: 0px;'></path>
+                <path
+                  d='m94.52,351.48s-3.45.92-4.72,5.41c0,0-1.5,1.96-1.84,2.99-.35,1.04-.92,3.45,3.68,2.76,4.6-.69,3.91,2.19,6.32,2.53,2.42.35,9.09-1.5,5.75-9.78,0,0,0-4.72-4.14-4.83-4.14-.11-5.06.92-5.06.92h0Z'
+                  style='fill: #e7bf47; stroke-width: 0px;'></path>
+                <path
+                  d='m95.2,384.68h-37.87s5.65-1.61,17.65-1.61,20.22,1.61,20.22,1.61h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+                <path
+                  d='m59.27,384.68H21.4s5.64-1.61,17.65-1.61,20.22,1.61,20.22,1.61h0Z'
+                  style='fill: #231f20; stroke-width: 0px;'></path>
+              </g>
+            </svg>
           </div>
         </div>
-        <div class='hidden'>
-          <image id='mailman-body' src='/images/mailman-body.png' />
-          <image id='mailman-hat' src='/images/mailman-hat.png' />
-          <image id='blue-envelope' src='/images/blue-envelope.png' />
-          <image id='green-envelope' src='/images/green-envelope.png' />
-          <image id='pink-envelope' src='/images/pink-envelope.png' />
+        <canvas id='canvas' class='hidden'></canvas>
+        <div>
+          <h2>2. Animated GIF</h2>
+          <img id='image' class='m-0 w-[400px] h-[400px] border border-black' />
+          <span id='message'></span>
+          <a id='link' download='cartman.gif' class='hidden'>Download</a>
         </div>
       </section>
     </main>

@@ -19,7 +19,6 @@
       gsap.to(values, 1, {
         start: values.end,
         onUpdate: () => {
-          console.log(values.start);
           ctx.clearRect(0, 0, width, height);
 
           ctx.fillStyle = '#e73e32';
@@ -28,8 +27,6 @@
           gifFrames.push(canvas.toDataURL('image/png'));
         },
         onComplete: async () => {
-          console.log(gifFrames);
-
           const gif = await modernGif.encode({
             width: width,
             height: height,
