@@ -3,57 +3,38 @@
     <meta charset='utf-8' />
     <title>Simple</title>
     <script>
-      const width = 400;
-      const height = 200;
-
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      let gifFrames = [];
+      let animationFrames = [];
+      let canvasFrames = [];
 
-      canvas.width = width;
-      canvas.height = height;
-
-      const values = { start: 0, end: 100 };
-
-      gsap.to(values, 1, {
-        start: values.end,
-        onUpdate: () => {
-          ctx.clearRect(0, 0, width, height);
-
-          ctx.fillStyle = '#e73e32';
-          ctx.fillRect(values.start, 70, 50, 50);
-
-          gifFrames.push(canvas.toDataURL('image/png'));
-        },
-        onComplete: async () => {
-          const gif = await modernGif.encode({
-            width: width,
-            height: height,
-            frames: gifFrames.map((frame) => {
-              return { imageData: frame, delay: 0 };
-            }),
-          });
-
-          const frames = await gif;
-          const blob = new Blob([frames], { type: 'image/gif' });
-          const src = URL.createObjectURL(blob);
-          console.log(src);
-
-          const image = document.getElementById('image');
-          const link = document.getElementById('link');
-
-          link.style.opacity = '100%';
-          image.src = src;
-          link.href = src;
-        },
-      });
+      gsap
+        .timeline({
+          onUpdate: () => {},
+          onComplete: () => {},
+        })
+        .fromTo('#rect', { x: -50 }, { duration: 2, x: 350, ease: 'power.ease2' });
     </script>
   </head>
   <body>
-    <canvas id='canvas'></canvas>
-    <img id='image' />
-    <a id='link' download='simple.gif' class='opacity-0'>Download</a>
+    <main>
+      <section>
+        <svg
+          id='svg'
+          xmlns='http://www.w3.org/2000/svg'
+          viewBox='0 0 400 200'
+          width={400}
+          height={200}
+          style={{ border: '1px solid red' }}
+        >
+          <rect id='rect' x='0' y='75' width='50' height='50' fill='red'></rect>
+        </svg>
+        <canvas id='canvas' style={{ border: '1px solid blue' }} width={400} height={200}></canvas>
+        <img id='image' width={400} height={200} style={{ border: '1px solid green' }} />
+        <a id='link' download='simple.gif'>Download</a>
+      </section>
+    </main>
     <script is:inline src='https://unpkg.com/modern-gif'></script>
     <script is:inline src='https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js'></script>
   </body>
